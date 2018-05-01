@@ -17,6 +17,7 @@ pip install configparser -t . --upgrade
 import requests                         # need this for Get/Post/Delete
 import configparser                     # parsing config file
 import time
+import sys
 
 
 config = configparser.ConfigParser()
@@ -60,9 +61,9 @@ def getAccessToken(myKey):
 # -------Get SDDC State ---------
 
 
-def getSDDCstate(sddcID, orgid, sessiontoken):
+def getSDDCstate(sddcID, org_id, sessiontoken):
     myHeader = {'csp-auth-token': sessiontoken}
-    myURL = strProdURL + "/vmc/api/orgs/" + orgid + "/sddcs/" + sddcID
+    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs/" + sddcID
     response = requests.get(myURL, headers=myHeader)
     jsonResponse = response.json()
     data.sddc_name           =   jsonResponse['name']
@@ -79,21 +80,21 @@ def getSDDCstate(sddcID, orgid, sessiontoken):
     return()
 
 
-def getSDDC_ID(orgID, session_token):
+def getSDDC_ID(org_id, session_token):
     myHeader = {'csp-auth-token': session_token}
-    myURL = strProdURL + "/vmc/api/orgs/" + orgID + "/sddcs"
+    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs"
     response = requests.get(myURL, headers=myHeader)
     sddc_list = response.json()
     for sddc in sddc_list:
         name = sddc['user_name']
         if name == User_Name:
             return(sddc['id'])
-    return"not-found"
+    return "not-found"
 
-def createSDDC(orgid, sessiontoken):
+def createSDDC(org_id, sessiontoken):
 
     myHeader = {'csp-auth-token': sessiontoken}
-    myURL = strProdURL + "/vmc/api/orgs/" + orgid + "/sddcs"
+    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs"
     strRequest = {
         "num_hosts": Sddc_hosts,
         "name": Sddc_name,
@@ -118,35 +119,53 @@ def createSDDC(orgid, sessiontoken):
         print("\nERROR: " + str(jsonResponse['error_messages'][0]))
 
     return
+
+def deleteSDDC(org_id, sessiontoken):
+    sddc_id = getSDDC_ID(org_id, sessiontoken)
+    if sddc_id == "not-found":
+        print("....No SDDC found on your name to delete!")
+        return
+    print("....deleting SDDC " + sddc_id)
+    myHeader = {'csp-auth-token': sessiontoken}
+    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs/" + sddc_id
+    response = requests.delete(myURL, headers=myHeader)
+    jsonResponse = response.json()
+    if str(response.status_code) != "202":
+        print("\nERROR: " + str(jsonResponse['error'][0]))
+    return
 # --------------------------------------------
 # ---------------- Main ----------------------
 # --------------------------------------------
 
 
-session_token = getAccessToken(Refresh_Token)
+if len(sys.argv) < 2:
 
+    print ("Usage: python %s -c (create SDDC) or -d (delete SDDC)" % sys.argv[0])
+    sys.exit()
 
-sddcID = getSDDC_ID(ORG_ID, session_token)
-if sddcID == "not-found":
-    print("SDDC not found....Creating new SDDC")
-    createSDDC(ORG_ID, session_token)
-    time.sleep(120)
-
-
-sddcID = getSDDC_ID(ORG_ID, session_token)
-print("\n")
-print("SDDC ID........... " + sddcID)
-
-
-getSDDCstate(sddcID, ORG_ID, session_token)
-print("SDDC Name......... " + data.sddc_name)
-print("SDDC Cluster...... " + data.sddc_cluster)
-print("Number of Hosts .. " + str(data.sddc_hosts))
-print("Deployed in ...... " + data.sddc_type)
-print("AWS Region........ " + data.sddc_region)
-print("\n")
-
-
+arg = sys.argv[1]
+if arg == "-c":
+    session_token = getAccessToken(Refresh_Token)
+    sddcID = getSDDC_ID(ORG_ID, session_token)
+    if sddcID == "not-found":
+        print("SDDC not found....Creating new SDDC")
+        createSDDC(ORG_ID, session_token)
+        time.sleep(120)
+    sddcID = getSDDC_ID(ORG_ID, session_token)
+    print("SDDC exists:\n")
+    print("SDDC ID........... " + sddcID)
+    getSDDCstate(sddcID, ORG_ID, session_token)
+    print("SDDC Name......... " + data.sddc_name)
+    print("SDDC Cluster...... " + data.sddc_cluster)
+    print("Number of Hosts .. " + str(data.sddc_hosts))
+    print("Deployed in ...... " + data.sddc_type)
+    print("AWS Region........ " + data.sddc_region)
+    print("\n")
+elif arg == "-d":
+    session_token = getAccessToken(Refresh_Token)
+    deleteSDDC(ORG_ID, session_token)
+else:
+    print("unrecognized argument " + arg)
 
 
 
