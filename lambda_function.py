@@ -1,9 +1,8 @@
 """
 
-Basic Tests against the Skyscraper API
+Basic Tests against the VMC API
 VMC API documentation available at https://vmc.vmware.com/swagger/index.html#/
 CSP API documentation is available at https://saas.csp.vmware.com/csp/gateway/api-docs
-vCenter API documentation is available at https://code.vmware.com/apis/191/vsphere-automation
 
 
 You can install python 3.6 from https://www.python.org/downloads/windows/
@@ -63,7 +62,7 @@ def getAccessToken(myKey):
 
 def getSDDCstate(sddcID, org_id, sessiontoken):
     myHeader = {'csp-auth-token': sessiontoken}
-    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs/" + sddcID
+    myURL = "{}/vmc/api/orgs/{}/sddcs/{}".format(strProdURL, org_id, sddcID)
     response = requests.get(myURL, headers=myHeader)
     jsonResponse = response.json()
     data.sddc_name           =   jsonResponse['name']
@@ -82,7 +81,7 @@ def getSDDCstate(sddcID, org_id, sessiontoken):
 
 def getSDDC_ID(org_id, session_token):
     myHeader = {'csp-auth-token': session_token}
-    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs"
+    myURL = "{}/vmc/api/orgs/{}/sddcs".format(strProdURL, org_id)
     response = requests.get(myURL, headers=myHeader)
     sddc_list = response.json()
     for sddc in sddc_list:
@@ -94,7 +93,7 @@ def getSDDC_ID(org_id, session_token):
 def createSDDC(org_id, sessiontoken):
 
     myHeader = {'csp-auth-token': sessiontoken}
-    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs"
+    myURL = "{}/vmc/api/orgs/{}/sddcs".format(strProdURL, org_id)
     strRequest = {
         "num_hosts": Sddc_hosts,
         "name": Sddc_name,
@@ -127,7 +126,7 @@ def deleteSDDC(org_id, sessiontoken):
         return
     print("....deleting SDDC " + sddc_id)
     myHeader = {'csp-auth-token': sessiontoken}
-    myURL = strProdURL + "/vmc/api/orgs/" + org_id + "/sddcs/" + sddc_id
+    myURL = "{}/vmc/api/orgs/{}/sddcs/{}".format(strProdURL, org_id, sddc_id)
     response = requests.delete(myURL, headers=myHeader)
     jsonResponse = response.json()
     if str(response.status_code) != "202":
@@ -166,6 +165,12 @@ elif arg == "-d":
     deleteSDDC(ORG_ID, session_token)
 else:
     print("unrecognized argument " + arg)
+
+
+
+
+
+
 
 
 
